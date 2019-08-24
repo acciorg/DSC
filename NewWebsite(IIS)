@@ -1,0 +1,58 @@
+ $sitename = 'up-to-you'
+ Configuration YeniSite
+{
+
+ Import-DscResource -Module xWebAdministration 
+ Import-DscResource -Module PSDesiredStateConfiguration
+ 
+    Node localhost
+    {
+
+        WindowsFeature IISF
+        {
+            Ensure          = 'Present'
+            Name            = 'Web-Server'
+        }
+
+        WindowsFeature IISConsole
+        {
+
+            Ensure         = 'Present'
+            Name           = 'Web-Mgmt-Console'
+
+        }
+
+        xWebsite SiteStopped
+        {
+            Ensure          = 'Present'
+            Name            = 'Default Web Site'
+            State           = 'Stopped'
+            PhysicalPath    = 'C:\inetpub\wwwroot'
+            
+        }
+
+        File SiteIcerik
+        {
+            Ensure          = 'Present'
+            SourcePath      = '\\SERVER\Shared'
+            DestinationPath = "C:\inetpub\wwwroot\$sitename"
+            Recurse         = $true
+            Type            = 'Directory'
+            MatchSource     = $true
+            Checksum        = 'SHA-256' 
+        }
+
+        xWebsite NewWebsite
+        {
+            Ensure          = 'Present'
+            Name            = $sitename
+            State           = 'Started'
+            PhysicalPath    = "C:\inetpub\wwwroot\$sitename"
+            DependsOn       ='[File]WebContent'
+        }
+    }
+}
+
+YeniSite
+ 
+
