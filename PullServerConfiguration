@@ -1,0 +1,52 @@
+configuration DscPullServer
+{
+param
+(
+[ValidateNotNullOrEmpty()]
+[string] $certificateThumbPrint,
+
+[ValidateNotNullOrEmpty()]
+[string] $RegistrationKey
+)
+
+Import-DSCResource -ModuleName PSDesiredStateConfiguration
+Import-DSCResource -ModuleName xPSDesiredStateConfiguration
+
+    Node localhost
+    {
+        WindowsFeature DSCServiceFeature
+        {
+            Ensure = 'Present'
+            Name = 'DSC-Service'
+        }
+
+        xDscWebService PSDSCPullServer
+        {
+            Ensure = 'present'
+            EndpointName = 'PSDSCPullServer'
+            PhysicalPath = "$env:SystemDrive\inetpub\PSDSCPullServer\"
+            CertificateThumbPrint = $certificateThumbPrint
+            ModulePath = "$env:PROGRAMFILES\WindowsPowerShell\DscServer\Modules"
+            ConfigurationPath = "$env:PROGRAMFILES\WindowsPowerShell\DscServer\Configuration"
+            State = 'Started'
+            DependsOn = '[WindowsFeature]DSCServiceFeature'
+            UseSecurityBestPractices = $true
+        }
+        
+        File RegistrationKeyFile
+        {
+            Ensure = 'Present'
+            Type = 'File'
+            DestinationPath = "$env:ProgramFiles\WindowsPowerShell\DscService\RegistrationKeys.txt"
+            Contents = $RegistrationKey
+        }
+    }
+
+}
+
+$guid = New-Guid
+
+$certt = Get-ChildItem Cert:\LocalMachine\My | where {$_.Thumbprint -eq 'CertificateThumbprintwasHere'}
+
+DscPullServer -certificateThumbPrint $certt.Thumbprint -RegistrationKey $guid 
+
